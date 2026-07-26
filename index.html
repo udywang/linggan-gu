@@ -1,0 +1,824 @@
+
+
+<!DOCTYPE html>
+
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="theme-color" content="#EDE8DE">
+<title>灵感菇</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Noto+Serif+SC:wght@500;700;900&family=Zhi+Mang+Xing&family=Noto+Sans+SC:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --paper:#EDE8DE;
+    --paper-dark:#E3DCCC;
+    --ink:#1F1B16;
+    --ink-soft:#5B5346;
+    --highlight:#E8C468;
+    --highlight-dim:#D9B24F;
+    --ai:#4A6670;
+    --ai-soft:#DCE6E8;
+    --ai-deep:#2E4249;
+    --line:rgba(31,27,22,0.12);
+    --danger:#B5533C;
+    --white:#FBFAF6;
+  }
+  *{box-sizing:border-box; -webkit-tap-highlight-color:transparent;}
+  html,body{margin:0;padding:0;background:var(--paper);color:var(--ink);
+    font-family:'Noto Sans SC',sans-serif; overscroll-behavior:none;
+    height:100%; width:100%;}
+  body{
+    background-image:
+      radial-gradient(circle at 20% 10%, rgba(0,0,0,0.03) 0%, transparent 40%),
+      radial-gradient(circle at 80% 80%, rgba(0,0,0,0.025) 0%, transparent 40%);
+  }
+  #app{display:flex; flex-direction:column; height:100vh; height:100dvh; overflow:hidden;}
+
+/* ––––– Header ––––– */
+header{
+padding:calc(env(safe-area-inset-top,0px) + 14px) 18px 12px;
+display:flex; align-items:baseline; justify-content:space-between;
+border-bottom:1px solid var(–line);
+background:var(–paper);
+position:relative; z-index:5;
+flex-shrink:0;
+}
+.brand{display:flex; align-items:baseline; gap:8px;}
+.brand h1{
+font-family:‘Noto Serif SC’,serif; font-weight:900; font-size:22px;
+margin:0; letter-spacing:1px;
+}
+.brand .mark{
+font-family:‘Zhi Mang Xing’,cursive; color:var(–highlight-dim);
+font-size:20px; transform:rotate(-6deg) translateY(2px); display:inline-block;
+}
+.count-badge{
+font-family:‘JetBrains Mono’,monospace; font-size:11px; color:var(–ink-soft);
+background:var(–paper-dark); padding:3px 8px; border-radius:20px;
+border:1px solid var(–line);
+}
+
+/* ––––– Tabs ––––– */
+.tabs{
+display:flex; gap:6px; padding:10px 14px 0;
+border-bottom:1px solid var(–line); background:var(–paper); flex-shrink:0;
+overflow-x:auto; scrollbar-width:none;
+}
+.tabs::-webkit-scrollbar{display:none;}
+.tab{
+font-family:‘Noto Sans SC’,sans-serif; font-weight:600; font-size:13px;
+padding:8px 14px 10px; color:var(–ink-soft); background:none; border:none;
+cursor:pointer; white-space:nowrap; position:relative; border-radius:8px 8px 0 0;
+}
+.tab.active{color:var(–ink);}
+.tab.active::after{
+content:’’; position:absolute; bottom:-1px; left:10%; right:10%; height:3px;
+background:var(–highlight); border-radius:2px 2px 0 0;
+}
+
+/* ––––– Main scroll area ––––– */
+main{flex:1; overflow-y:auto; position:relative; -webkit-overflow-scrolling:touch;}
+.view{display:none; padding:16px 14px calc(env(safe-area-inset-bottom,0px) + 100px); min-height:100%;}
+.view.active{display:block;}
+
+/* ––––– Empty state ––––– */
+.empty{
+text-align:center; padding:60px 20px; color:var(–ink-soft);
+}
+.empty .glyph{font-size:40px; margin-bottom:10px; opacity:0.5;}
+.empty p{font-size:14px; line-height:1.7; margin:4px 0;}
+.empty .accent{font-family:‘Zhi Mang Xing’,cursive; color:var(–highlight-dim); font-size:18px;}
+
+/* ––––– Cards grid (Board view) ––––– */
+.board-grid{
+display:grid; grid-template-columns:1fr 1fr; gap:14px;
+}
+.card{
+background:var(–white);
+border-radius:3px;
+padding:12px 12px 10px;
+box-shadow:0 2px 6px rgba(31,27,22,0.12), 0 1px 2px rgba(31,27,22,0.08);
+position:relative;
+cursor:pointer;
+transition:transform .15s ease, box-shadow .15s ease;
+border:1px solid rgba(0,0,0,0.04);
+}
+.card:nth-of-type(3n+1){transform:rotate(-1.1deg);}
+.card:nth-of-type(3n+2){transform:rotate(0.8deg);}
+.card:nth-of-type(3n){transform:rotate(-0.4deg);}
+.card:active{transform:scale(0.97) rotate(0deg) !important;}
+.card .pin{
+position:absolute; top:-6px; left:50%; transform:translateX(-50%);
+width:14px; height:14px; border-radius:50%;
+background:radial-gradient(circle at 35% 30%, #F3D67C, var(–highlight-dim));
+box-shadow:0 2px 3px rgba(0,0,0,0.3);
+}
+.card .thumb{
+width:100%; aspect-ratio:1.1; border-radius:2px; overflow:hidden;
+background:var(–paper-dark); margin-bottom:8px;
+display:flex; align-items:center; justify-content:center;
+font-size:26px; color:var(–ink-soft); position:relative;
+}
+.card .thumb img,.card .thumb video{width:100%; height:100%; object-fit:cover;}
+.card .thumb .play-badge{
+position:absolute; inset:0; display:flex; align-items:center; justify-content:center;
+background:rgba(0,0,0,0.15);
+}
+.card .thumb .play-badge span{
+width:30px; height:30px; border-radius:50%; background:rgba(255,255,255,0.9);
+display:flex; align-items:center; justify-content:center; font-size:12px; color:var(–ink);
+}
+.card .snippet{
+font-size:12.5px; line-height:1.5; color:var(–ink); max-height:4.5em; overflow:hidden;
+font-family:‘Noto Sans SC’,sans-serif;
+}
+.card .meta-row{
+display:flex; align-items:center; justify-content:space-between; margin-top:8px;
+}
+.card .type-tag{
+font-family:‘JetBrains Mono’,monospace; font-size:9.5px; text-transform:uppercase;
+color:var(–ai-deep); background:var(–ai-soft); padding:2px 6px; border-radius:3px;
+letter-spacing:0.5px;
+}
+.card .time{font-family:‘JetBrains Mono’,monospace; font-size:9.5px; color:var(–ink-soft);}
+.card .tags{display:flex; flex-wrap:wrap; gap:4px; margin-top:6px;}
+.card .tag-chip{
+font-size:9.5px; color:var(–highlight-dim); background:rgba(232,196,104,0.15);
+padding:1px 6px; border-radius:8px; border:1px solid rgba(232,196,104,0.4);
+}
+
+/* ––––– FAB ––––– */
+.fab-wrap{
+position:fixed; bottom:calc(env(safe-area-inset-bottom,0px) + 84px); right:18px; z-index:20;
+}
+.fab{
+width:58px; height:58px; border-radius:50%;
+background:linear-gradient(155deg, var(–highlight), var(–highlight-dim));
+box-shadow:0 6px 16px rgba(217,178,79,0.5), 0 2px 4px rgba(0,0,0,0.15);
+display:flex; align-items:center; justify-content:center;
+font-size:26px; color:var(–ink); border:none; cursor:pointer;
+transition:transform .15s ease;
+}
+.fab:active{transform:scale(0.9);}
+
+/* ––––– Bottom nav ––––– */
+nav.bottom{
+display:flex; border-top:1px solid var(–line); background:var(–white);
+padding-bottom:env(safe-area-inset-bottom,0px); flex-shrink:0; z-index:10;
+}
+nav.bottom button{
+flex:1; background:none; border:none; padding:10px 4px 8px; cursor:pointer;
+display:flex; flex-direction:column; align-items:center; gap:3px;
+color:var(–ink-soft); font-family:‘Noto Sans SC’,sans-serif; font-size:10.5px; font-weight:500;
+}
+nav.bottom button .icon{font-size:19px;}
+nav.bottom button.active{color:var(–ink);}
+nav.bottom button.active .icon{color:var(–highlight-dim);}
+
+/* ––––– Modal (capture) ––––– */
+.sheet-overlay{
+position:fixed; inset:0; background:rgba(31,27,22,0.45); z-index:100;
+display:none; align-items:flex-end; backdrop-filter:blur(2px);
+}
+.sheet-overlay.show{display:flex;}
+.sheet{
+width:100%; background:var(–paper); border-radius:20px 20px 0 0;
+padding:16px 18px calc(env(safe-area-inset-bottom,0px) + 20px);
+max-height:88vh; overflow-y:auto;
+box-shadow:0 -8px 30px rgba(0,0,0,0.2);
+animation:slideUp .25s ease;
+}
+@keyframes slideUp{from{transform:translateY(100%)} to{transform:translateY(0)}}
+.sheet-handle{width:36px; height:4px; background:var(–line); border-radius:3px; margin:0 auto 14px;}
+.sheet h2{font-family:‘Noto Serif SC’,serif; font-size:18px; margin:0 0 14px; font-weight:700;}
+
+.capture-tabs{display:flex; gap:6px; margin-bottom:14px;}
+.capture-tab{
+flex:1; padding:10px 6px; text-align:center; border-radius:10px; border:1.5px solid var(–line);
+background:var(–white); font-size:12px; font-weight:600; color:var(–ink-soft); cursor:pointer;
+}
+.capture-tab.sel{border-color:var(–highlight-dim); background:rgba(232,196,104,0.15); color:var(–ink);}
+.capture-tab .ic{display:block; font-size:18px; margin-bottom:3px;}
+
+textarea#textInput{
+width:100%; min-height:120px; border:1.5px solid var(–line); border-radius:10px;
+padding:12px; font-family:‘Noto Sans SC’,sans-serif; font-size:15px; background:var(–white);
+resize:vertical; color:var(–ink); line-height:1.6;
+}
+textarea#textInput:focus{outline:none; border-color:var(–highlight-dim);}
+
+.file-drop{
+border:1.5px dashed var(–line); border-radius:12px; padding:26px 12px; text-align:center;
+color:var(–ink-soft); font-size:13px; cursor:pointer; background:var(–white);
+}
+.file-drop.has-file{border-color:var(–ai); background:var(–ai-soft); color:var(–ai-deep);}
+.file-drop .ic{font-size:26px; display:block; margin-bottom:6px;}
+input[type=file]{display:none;}
+
+.preview-media{margin-top:10px; border-radius:10px; overflow:hidden; max-height:220px;}
+.preview-media img{width:100%; display:block;}
+.preview-media video, .preview-media audio{width:100%;}
+
+.save-btn{
+width:100%; margin-top:16px; padding:14px; border:none; border-radius:12px;
+background:var(–ink); color:var(–white); font-size:15px; font-weight:600;
+font-family:‘Noto Sans SC’,sans-serif; cursor:pointer;
+}
+.save-btn:disabled{opacity:0.4;}
+.save-btn:active{transform:scale(0.98);}
+
+/* ––––– Detail modal ––––– */
+.detail-overlay{
+position:fixed; inset:0; background:rgba(31,27,22,0.55); z-index:110;
+display:none; align-items:center; justify-content:center; padding:20px;
+}
+.detail-overlay.show{display:flex;}
+.detail-card{
+background:var(–white); border-radius:16px; max-width:100%; width:100%; max-height:85vh;
+overflow-y:auto; padding:20px; position:relative;
+}
+.detail-close{
+position:absolute; top:12px; right:12px; width:30px; height:30px; border-radius:50%;
+background:var(–paper-dark); border:none; font-size:16px; color:var(–ink-soft); cursor:pointer;
+}
+.detail-media{border-radius:10px; overflow:hidden; margin-bottom:14px;}
+.detail-media img{width:100%; display:block;}
+.detail-text{font-size:15px; line-height:1.75; white-space:pre-wrap; color:var(–ink); margin-bottom:14px;}
+.detail-tags{display:flex; flex-wrap:wrap; gap:6px; margin-bottom:14px;}
+.detail-actions{display:flex; gap:8px;}
+.detail-actions button{
+flex:1; padding:10px; border-radius:10px; border:1.5px solid var(–line); background:var(–white);
+font-size:13px; font-weight:600; color:var(–ink-soft); cursor:pointer;
+}
+.detail-actions button.danger{color:var(–danger); border-color:rgba(181,83,60,0.3);}
+
+/* ––––– AI Studio view ––––– */
+.ai-panel{
+background:var(–ai-deep); color:var(–white); border-radius:16px; padding:18px;
+margin-bottom:16px; position:relative; overflow:hidden;
+}
+.ai-panel::before{
+content:’’; position:absolute; top:-30%; right:-20%; width:180px; height:180px; border-radius:50%;
+background:radial-gradient(circle, rgba(255,255,255,0.08), transparent 70%);
+}
+.ai-panel h3{font-family:‘Noto Serif SC’,serif; font-size:16px; margin:0 0 6px; font-weight:700;}
+.ai-panel p{font-size:12.5px; opacity:0.75; margin:0 0 14px; line-height:1.6;}
+.ai-actions{display:flex; gap:8px; flex-wrap:wrap;}
+.ai-btn{
+background:rgba(255,255,255,0.12); border:1px solid rgba(255,255,255,0.25); color:var(–white);
+padding:9px 14px; border-radius:20px; font-size:12.5px; font-weight:600; cursor:pointer;
+display:flex; align-items:center; gap:6px;
+}
+.ai-btn:active{background:rgba(255,255,255,0.22);}
+
+.report-block{
+background:var(–white); border-radius:14px; padding:16px; margin-bottom:14px;
+border:1px solid var(–line); box-shadow:0 2px 8px rgba(0,0,0,0.05);
+}
+.report-block .rb-head{display:flex; justify-content:space-between; align-items:baseline; margin-bottom:8px;}
+.report-block .rb-head .t{font-family:‘Noto Serif SC’,serif; font-weight:700; font-size:14px;}
+.report-block .rb-head .d{font-family:‘JetBrains Mono’,monospace; font-size:10px; color:var(–ink-soft);}
+.report-block .rb-body{font-size:13.5px; line-height:1.75; color:var(–ink); white-space:pre-wrap;}
+
+.loading-dots{display:inline-flex; gap:4px; align-items:center;}
+.loading-dots span{
+width:6px; height:6px; border-radius:50%; background:var(–highlight);
+animation:bounce 1.2s infinite ease-in-out;
+}
+.loading-dots span:nth-child(2){animation-delay:0.15s;}
+.loading-dots span:nth-child(3){animation-delay:0.3s;}
+@keyframes bounce{0%,80%,100%{transform:scale(0.6); opacity:0.4;} 40%{transform:scale(1); opacity:1;}}
+
+/* ––––– Chat view ––––– */
+.chat-scroll{display:flex; flex-direction:column; gap:12px; padding-bottom:10px;}
+.msg{max-width:85%; padding:11px 14px; border-radius:14px; font-size:14px; line-height:1.6;}
+.msg.user{align-self:flex-end; background:var(–ink); color:var(–white); border-radius:14px 14px 4px 14px;}
+.msg.ai{align-self:flex-start; background:var(–white); border:1px solid var(–line); border-radius:14px 14px 14px 4px; white-space:pre-wrap;}
+.chat-input-bar{
+position:fixed; bottom:0; left:0; right:0; background:var(–paper);
+border-top:1px solid var(–line); padding:10px 12px calc(env(safe-area-inset-bottom,0px) + 10px);
+display:flex; gap:8px; z-index:15;
+}
+.chat-input-bar input{
+flex:1; border:1.5px solid var(–line); border-radius:22px; padding:11px 16px; font-size:14px;
+font-family:‘Noto Sans SC’,sans-serif; background:var(–white); color:var(–ink);
+}
+.chat-input-bar input:focus{outline:none; border-color:var(–highlight-dim);}
+.chat-input-bar button{
+width:42px; height:42px; border-radius:50%; border:none; background:var(–highlight);
+font-size:16px; cursor:pointer; flex-shrink:0;
+}
+
+/* filter chips */
+.filter-row{display:flex; gap:6px; overflow-x:auto; padding-bottom:10px; scrollbar-width:none;}
+.filter-row::-webkit-scrollbar{display:none;}
+.filter-chip{
+font-size:12px; padding:6px 12px; border-radius:16px; background:var(–white);
+border:1.5px solid var(–line); color:var(–ink-soft); white-space:nowrap; cursor:pointer; font-weight:500;
+}
+.filter-chip.on{background:var(–ink); color:var(–white); border-color:var(–ink);}
+
+.toast{
+position:fixed; top:calc(env(safe-area-inset-top,0px) + 10px); left:50%; transform:translateX(-50%);
+background:var(–ink); color:var(–white); padding:10px 18px; border-radius:20px; font-size:13px;
+z-index:200; opacity:0; transition:opacity .3s, transform .3s; pointer-events:none;
+}
+.toast.show{opacity:1; transform:translateX(-50%) translateY(4px);}
+</style>
+
+</head>
+<body>
+<div id="app">
+
+  <header>
+    <div class="brand">
+      <h1>灵感菇</h1>
+      <span class="mark">思绪落地处</span>
+    </div>
+    <span class="count-badge" id="countBadge">0 条素材</span>
+  </header>
+
+  <div class="tabs" id="filterTabs">
+    <button class="tab active" data-filter="all">全部</button>
+    <button class="tab" data-filter="text">文字</button>
+    <button class="tab" data-filter="image">图片</button>
+    <button class="tab" data-filter="audio">音频</button>
+    <button class="tab" data-filter="video">视频</button>
+  </div>
+
+  <main>
+    <!-- Board view -->
+    <div class="view active" id="view-board">
+      <div id="boardGrid" class="board-grid"></div>
+      <div class="empty" id="emptyState" style="display:none;">
+        <div class="glyph">✎</div>
+        <p class="accent">还没有落下的灵感</p>
+        <p>点右下角的笔，记下第一条</p>
+      </div>
+    </div>
+
+```
+<!-- AI Studio view -->
+<div class="view" id="view-ai">
+  <div class="ai-panel">
+    <h3>整理灵感</h3>
+    <p>让 AI 读遍你的素材库，打标签、找主题、看风格倾向。素材越多，整理越准。</p>
+    <div class="ai-actions">
+      <button class="ai-btn" id="btnAutoTag">🏷 自动打标签</button>
+      <button class="ai-btn" id="btnReport">📋 生成灵感报告</button>
+    </div>
+  </div>
+  <div id="reportArea"></div>
+</div>
+
+<!-- Chat view -->
+<div class="view" id="view-chat">
+  <div class="chat-scroll" id="chatScroll">
+    <div class="msg ai">我是你的灵感助手。可以问我"最近积累了哪些方向""这些素材适合做什么风格"，我会结合你存的素材回答。</div>
+  </div>
+</div>
+```
+
+  </main>
+
+  <div class="fab-wrap"><button class="fab" id="fabAdd">✎</button></div>
+
+  <nav class="bottom">
+    <button class="nav-item active" data-view="board"><span class="icon">🗂</span>素材台</button>
+    <button class="nav-item" data-view="ai"><span class="icon">✦</span>AI 整理</button>
+    <button class="nav-item" data-view="chat"><span class="icon">💬</span>对话</button>
+  </nav>
+</div>
+
+<!-- Capture sheet -->
+
+<div class="sheet-overlay" id="captureOverlay">
+  <div class="sheet">
+    <div class="sheet-handle"></div>
+    <h2>记一条灵感</h2>
+    <div class="capture-tabs" id="captureTabs">
+      <div class="capture-tab sel" data-type="text"><span class="ic">✎</span>文字</div>
+      <div class="capture-tab" data-type="image"><span class="ic">🖼</span>图片</div>
+      <div class="capture-tab" data-type="audio"><span class="ic">🎙</span>音频</div>
+      <div class="capture-tab" data-type="video"><span class="ic">🎬</span>视频</div>
+    </div>
+
+```
+<div id="captureBody">
+  <textarea id="textInput" placeholder="写下这一刻的想法……"></textarea>
+</div>
+
+<button class="save-btn" id="saveBtn">存入灵感菇</button>
+```
+
+  </div>
+</div>
+
+<!-- Detail modal -->
+
+<div class="detail-overlay" id="detailOverlay">
+  <div class="detail-card" id="detailCard"></div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+const DB_NAME='inspiration_board_db', DB_VERSION=1, STORE='items';
+let db;
+
+function openDB(){
+  return new Promise((resolve,reject)=>{
+    const req=indexedDB.open(DB_NAME, DB_VERSION);
+    req.onupgradeneeded=e=>{
+      const d=e.target.result;
+      if(!d.objectStoreNames.contains(STORE)){
+        const s=d.createObjectStore(STORE,{keyPath:'id'});
+        s.createIndex('createdAt','createdAt');
+        s.createIndex('type','type');
+      }
+    };
+    req.onsuccess=e=>{db=e.target.result; resolve(db);};
+    req.onerror=e=>reject(e);
+  });
+}
+function dbAdd(item){
+  return new Promise((resolve,reject)=>{
+    const tx=db.transaction(STORE,'readwrite');
+    tx.objectStore(STORE).add(item);
+    tx.oncomplete=()=>resolve();
+    tx.onerror=e=>reject(e);
+  });
+}
+function dbPut(item){
+  return new Promise((resolve,reject)=>{
+    const tx=db.transaction(STORE,'readwrite');
+    tx.objectStore(STORE).put(item);
+    tx.oncomplete=()=>resolve();
+    tx.onerror=e=>reject(e);
+  });
+}
+function dbDelete(id){
+  return new Promise((resolve,reject)=>{
+    const tx=db.transaction(STORE,'readwrite');
+    tx.objectStore(STORE).delete(id);
+    tx.oncomplete=()=>resolve();
+    tx.onerror=e=>reject(e);
+  });
+}
+function dbGetAll(){
+  return new Promise((resolve,reject)=>{
+    const tx=db.transaction(STORE,'readonly');
+    const req=tx.objectStore(STORE).getAll();
+    req.onsuccess=()=>resolve(req.result.sort((a,b)=>b.createdAt-a.createdAt));
+    req.onerror=e=>reject(e);
+  });
+}
+
+let items=[];
+let currentFilter='all';
+let captureType='text';
+let pendingFile=null; // {dataUrl, mime, name}
+
+const $ = s=>document.querySelector(s);
+const $$ = s=>document.querySelectorAll(s);
+
+function toast(msg){
+  const t=$('#toast'); t.textContent=msg; t.classList.add('show');
+  setTimeout(()=>t.classList.remove('show'), 2200);
+}
+
+function uid(){ return 'id_'+Date.now()+'_'+Math.random().toString(36).slice(2,8); }
+
+function fmtTime(ts){
+  const d=new Date(ts);
+  const now=new Date();
+  const sameDay=d.toDateString()===now.toDateString();
+  if(sameDay) return d.toTimeString().slice(0,5);
+  return (d.getMonth()+1)+'/'+d.getDate();
+}
+
+function typeIcon(t){
+  return {text:'✎',image:'🖼',audio:'🎙',video:'🎬'}[t]||'✎';
+}
+function typeLabel(t){
+  return {text:'TEXT',image:'IMAGE',audio:'AUDIO',video:'VIDEO'}[t]||'TEXT';
+}
+
+/* ---------------- Rendering board ---------------- */
+function renderBoard(){
+  const grid=$('#boardGrid');
+  const filtered = currentFilter==='all' ? items : items.filter(i=>i.type===currentFilter);
+  $('#countBadge').textContent = items.length+' 条素材';
+  $('#emptyState').style.display = filtered.length? 'none':'block';
+  grid.innerHTML='';
+  filtered.forEach(item=>{
+    const card=document.createElement('div');
+    card.className='card';
+    card.dataset.id=item.id;
+    let thumbHtml='';
+    if(item.type==='image' && item.mediaData){
+      thumbHtml=`<div class="thumb"><img src="${item.mediaData}"></div>`;
+    } else if(item.type==='video' && item.mediaData){
+      thumbHtml=`<div class="thumb"><video src="${item.mediaData}" muted></video><div class="play-badge"><span>▶</span></div></div>`;
+    } else if(item.type==='audio'){
+      thumbHtml=`<div class="thumb">🎙</div>`;
+    } else {
+      thumbHtml=`<div class="thumb">${typeIcon(item.type)}</div>`;
+    }
+    const snippetText = item.text ? item.text : (item.mediaName||'');
+    const tagsHtml = (item.tags&&item.tags.length) ? `<div class="tags">${item.tags.slice(0,3).map(t=>`<span class="tag-chip">${escapeHtml(t)}</span>`).join('')}</div>` : '';
+    card.innerHTML = `
+      <div class="pin"></div>
+      ${thumbHtml}
+      <div class="snippet">${escapeHtml(snippetText).slice(0,80)}</div>
+      <div class="meta-row">
+        <span class="type-tag">${typeLabel(item.type)}</span>
+        <span class="time">${fmtTime(item.createdAt)}</span>
+      </div>
+      ${tagsHtml}
+    `;
+    card.addEventListener('click',()=>openDetail(item.id));
+    grid.appendChild(card);
+  });
+}
+function escapeHtml(s){
+  return (s||'').replace(/[&<>"']/g, c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+}
+
+/* ---------------- Capture sheet ---------------- */
+function openCapture(){
+  $('#captureOverlay').classList.add('show');
+}
+function closeCapture(){
+  $('#captureOverlay').classList.remove('show');
+  $('#textInput').value='';
+  pendingFile=null;
+  setCaptureType('text');
+}
+function setCaptureType(t){
+  captureType=t;
+  $$('.capture-tab').forEach(el=>el.classList.toggle('sel', el.dataset.type===t));
+  const body=$('#captureBody');
+  if(t==='text'){
+    body.innerHTML = `<textarea id="textInput" placeholder="写下这一刻的想法……"></textarea>`;
+
+} else {
+const accept = t===‘image’ ? ‘image/*’ : t===‘audio’ ? ’audio/*’ : ‘video/*’;
+const icon = typeIcon(t);
+body.innerHTML = `<div class="file-drop" id="fileDrop"> <span class="ic">${icon}</span> <div>点击选择${t==='image'?'图片':t==='audio'?'音频':'视频'}文件</div> </div> <input type="file" id="fileInput" accept="${accept}"> <div id="previewArea"></div> <textarea id="textInput" placeholder="补充一点文字说明（可选）" style="margin-top:10px; min-height:60px;"></textarea>`;
+$(’#fileDrop’).addEventListener(‘click’,()=>$(’#fileInput’).click());
+$(’#fileInput’).addEventListener(‘change’, handleFileSelect);
+}
+}
+function handleFileSelect(e){
+const file=e.target.files[0];
+if(!file) return;
+const reader=new FileReader();
+reader.onload=()=>{
+pendingFile={dataUrl:reader.result, mime:file.type, name:file.name};
+$(’#fileDrop’).classList.add(‘has-file’);
+$(’#fileDrop’).innerHTML=`<span class="ic">✓</span><div>${escapeHtml(file.name)}</div>`;
+const prev=$(’#previewArea’);
+if(captureType===‘image’){
+prev.innerHTML=`<div class="preview-media"><img src="${pendingFile.dataUrl}"></div>`;
+} else if(captureType===‘video’){
+prev.innerHTML=`<div class="preview-media"><video src="${pendingFile.dataUrl}" controls></video></div>`;
+} else if(captureType===‘audio’){
+prev.innerHTML=`<div class="preview-media"><audio src="${pendingFile.dataUrl}" controls></audio></div>`;
+}
+};
+reader.readAsDataURL(file);
+}
+
+async function saveItem(){
+const textVal = $(’#textInput’) ? $(’#textInput’).value.trim() : ‘’;
+if(captureType===‘text’ && !textVal){ toast(‘写点什么再存吧’); return; }
+if(captureType!==‘text’ && !pendingFile){ toast(‘请先选择文件’); return; }
+
+const item = {
+id: uid(),
+type: captureType,
+text: textVal,
+mediaData: pendingFile ? pendingFile.dataUrl : null,
+mediaMime: pendingFile ? pendingFile.mime : null,
+mediaName: pendingFile ? pendingFile.name : null,
+tags: [],
+createdAt: Date.now()
+};
+try{
+await dbAdd(item);
+items.unshift(item);
+renderBoard();
+closeCapture();
+toast(‘已存入灵感菇’);
+}catch(err){
+console.error(err);
+toast(‘存储失败，文件可能太大’);
+}
+}
+
+/* –––––––– Detail modal –––––––– */
+function openDetail(id){
+const item=items.find(i=>i.id===id);
+if(!item) return;
+let mediaHtml=’’;
+if(item.type===‘image’ && item.mediaData) mediaHtml=`<div class="detail-media"><img src="${item.mediaData}"></div>`;
+if(item.type===‘video’ && item.mediaData) mediaHtml=`<div class="detail-media"><video src="${item.mediaData}" controls style="width:100%"></video></div>`;
+if(item.type===‘audio’ && item.mediaData) mediaHtml=`<div class="detail-media"><audio src="${item.mediaData}" controls style="width:100%"></audio></div>`;
+const tagsHtml = (item.tags&&item.tags.length) ? `<div class="detail-tags">${item.tags.map(t=>`<span class="tag-chip">${escapeHtml(t)}</span>`).join('')}</div>` : ‘<div class="detail-tags"><span class="tag-chip" style="opacity:0.5">尚未打标签</span></div>’;
+
+$(’#detailCard’).innerHTML = `<button class="detail-close" id="detailCloseBtn">✕</button> ${mediaHtml} <div class="detail-text">${escapeHtml(item.text || item.mediaName || '（无文字说明）')}</div> ${tagsHtml} <div class="time" style="margin-bottom:12px;">${new Date(item.createdAt).toLocaleString('zh-CN')}</div> <div class="detail-actions"> <button id="tagOneBtn">✦ 单独打标签</button> <button class="danger" id="deleteBtn">删除</button> </div>`;
+$(’#detailOverlay’).classList.add(‘show’);
+$(’#detailCloseBtn’).onclick=closeDetail;
+$(’#deleteBtn’).onclick=async()=>{
+await dbDelete(item.id);
+items=items.filter(i=>i.id!==item.id);
+renderBoard();
+closeDetail();
+toast(‘已删除’);
+};
+$(’#tagOneBtn’).onclick=()=>tagSingleItem(item);
+}
+function closeDetail(){ $(’#detailOverlay’).classList.remove(‘show’); }
+
+/* –––––––– AI calls –––––––– */
+async function callClaude(messages, system){
+const body = { model:‘claude-sonnet-4-6’, max_tokens:1500, messages };
+if(system) body.system = system;
+const resp = await fetch(‘https://api.anthropic.com/v1/messages’, {
+method:‘POST’, headers:{‘Content-Type’:‘application/json’}, body: JSON.stringify(body)
+});
+const data = await resp.json();
+const textBlocks = (data.content||[]).filter(b=>b.type===‘text’).map(b=>b.text);
+return textBlocks.join(’\n’);
+}
+
+function itemToDescriptor(item){
+const base = `[${item.id}] 类型:${typeLabel(item.type)} 时间:${new Date(item.createdAt).toLocaleString('zh-CN')}`;
+if(item.type===‘text’) return `${base} 内容: ${item.text}`;
+return `${base} 说明文字: ${item.text||'(无)'} 文件名:${item.mediaName||''}`;
+}
+
+async function tagSingleItem(item){
+toast(‘AI 正在思考标签…’);
+try{
+const desc = itemToDescriptor(item);
+const out = await callClaude(
+[{role:‘user’, content:`这是一条灵感素材记录：\n${desc}\n\n请给这条素材打 2-4 个简短中文标签（每个不超过4字，体现主题/风格/情绪），只返回用逗号分隔的标签列表，不要其他任何文字。`}]
+);
+const tags = out.split(/[,，、\n]/).map(s=>s.trim()).filter(Boolean).slice(0,4);
+item.tags = tags;
+await dbPut(item);
+renderBoard();
+closeDetail();
+toast(‘标签已更新：’+tags.join(’ / ’));
+}catch(e){
+console.error(e);
+toast(‘打标签失败，请重试’);
+}
+}
+
+async function autoTagAll(){
+if(items.length===0){ toast(‘先存点素材再整理吧’); return; }
+const untagged = items.filter(i=>!i.tags || i.tags.length===0);
+if(untagged.length===0){ toast(‘所有素材都已打过标签’); return; }
+const btn=$(’#btnAutoTag’);
+const originalText=btn.textContent;
+btn.textContent=‘整理中…’; btn.disabled=true;
+
+const descList = untagged.map(itemToDescriptor).join(’\n’);
+try{
+const out = await callClaude([{role:‘user’, content:
+`下面是一批灵感素材记录，每行一条，格式为 [id] 类型 时间 内容。请为每一条打 2-4 个简短中文标签（每个不超过4字）。\n\n${descList}\n\n请只返回 JSON 数组，格式：[{"id":"素材id","tags":["标签1","标签2"]}]，不要任何其他文字、不要markdown代码块标记。`
+}]);
+let jsonStr = out.trim().replace(/^`json\s*/,'').replace(/`$/,’’).trim();
+const results = JSON.parse(jsonStr);
+for(const r of results){
+const it = items.find(i=>i.id===r.id);
+if(it){ it.tags = r.tags; await dbPut(it); }
+}
+renderBoard();
+toast(`已为 ${results.length} 条素材打好标签`);
+}catch(e){
+console.error(e);
+toast(‘自动打标签失败，请重试’);
+}finally{
+btn.textContent=originalText; btn.disabled=false;
+}
+}
+
+async function generateReport(){
+if(items.length===0){ toast(‘先存点素材再生成报告吧’); return; }
+const btn=$(’#btnReport’);
+const area=$(’#reportArea’);
+btn.disabled=true;
+const loadingId=‘loading_’+Date.now();
+area.insertAdjacentHTML(‘afterbegin’, `<div class="report-block" id="${loadingId}"><div class="rb-head"><span class="t">正在生成报告</span></div><div class="loading-dots"><span></span><span></span><span></span></div></div>`);
+
+const descList = items.map(itemToDescriptor).join(’\n’);
+try{
+const out = await callClaude([{role:‘user’, content:
+`你是一个帮用户整理创作灵感的助手。下面是用户积累的所有灵感素材记录：\n\n${descList}\n\n请生成一份简短的灵感总结报告，包含：\n1. 主要主题/方向（有哪几类想法在反复出现）\n2. 风格倾向（从文字/素材描述中能看出的调性、美学、情绪基调）\n3. 值得深挖的1-2个方向，给出具体建议\n\n用简洁的中文写，分小标题，每部分不超过4句话，语气像朋友间的真诚建议，不要用"作为AI"之类的话，不要markdown符号如#和*。`
+}]);
+document.getElementById(loadingId).outerHTML = ` <div class="report-block"> <div class="rb-head"><span class="t">灵感报告</span><span class="d">${new Date().toLocaleString('zh-CN')}</span></div> <div class="rb-body">${escapeHtml(out)}</div> </div>`;
+}catch(e){
+console.error(e);
+document.getElementById(loadingId).outerHTML = `<div class="report-block"><div class="rb-body">生成失败，请重试</div></div>`;
+}finally{
+btn.disabled=false;
+}
+}
+
+/* –––––––– Chat –––––––– */
+let chatHistory=[];
+async function sendChat(){
+const input=$(’#chatInput’);
+const val=input.value.trim();
+if(!val) return;
+input.value=’’;
+appendMsg(‘user’, val);
+chatHistory.push({role:‘user’, content:val});
+
+const scroll=$(’#chatScroll’);
+const loadingEl=document.createElement(‘div’);
+loadingEl.className=‘msg ai’;
+loadingEl.innerHTML=’<div class="loading-dots"><span></span><span></span><span></span></div>’;
+scroll.appendChild(loadingEl);
+scroll.scrollTop=scroll.scrollHeight;
+
+const descList = items.length ? items.map(itemToDescriptor).join(’\n’) : ‘（用户还没有存任何素材）’;
+try{
+const out = await callClaude(
+[…chatHistory],
+`你是用户的灵感整理助手，帮他梳理和分析他记录的创作素材库。以下是他目前存的所有素材：\n\n${descList}\n\n请结合这些素材回答用户的问题，语气自然、简洁，像朋友聊天，不要用markdown符号。如果素材库是空的，提醒他先去"素材台"记一些内容。`
+);
+loadingEl.remove();
+appendMsg(‘ai’, out);
+chatHistory.push({role:‘assistant’, content:out});
+}catch(e){
+console.error(e);
+loadingEl.remove();
+appendMsg(‘ai’, ‘出错了，请再试一次’);
+}
+}
+function appendMsg(role, text){
+const scroll=$(’#chatScroll’);
+const el=document.createElement(‘div’);
+el.className=’msg ’+role;
+el.textContent=text;
+scroll.appendChild(el);
+scroll.scrollTop=scroll.scrollHeight;
+}
+
+/* –––––––– Nav / view switching –––––––– */
+function switchView(view){
+$$(’.view’).forEach(v=>v.classList.remove(‘active’));
+$(’#view-’+view).classList.add(‘active’);
+$$(’.nav-item’).forEach(b=>b.classList.toggle(‘active’, b.dataset.view===view));
+$(’#filterTabs’).style.display = view===‘board’ ? ‘flex’:‘none’;
+$(’.fab-wrap’).style.display = view===‘board’ ? ‘block’:‘none’;
+document.querySelectorAll(’.chat-input-bar’).forEach(e=>e.remove());
+if(view===‘chat’){
+const bar=document.createElement(‘div’);
+bar.className=‘chat-input-bar’;
+bar.innerHTML = `<input type="text" id="chatInput" placeholder="问问关于你的灵感库…"><button id="chatSendBtn">➤</button>`;
+document.body.appendChild(bar);
+$(’#chatSendBtn’).onclick=sendChat;
+$(’#chatInput’).addEventListener(‘keydown’, e=>{ if(e.key===‘Enter’) sendChat(); });
+}
+}
+
+/* –––––––– Init –––––––– */
+async function init(){
+await openDB();
+items = await dbGetAll();
+renderBoard();
+
+$(’#fabAdd’).addEventListener(‘click’, openCapture);
+$(’#saveBtn’).addEventListener(‘click’, saveItem);
+$(’#captureOverlay’).addEventListener(‘click’, e=>{ if(e.target.id===‘captureOverlay’) closeCapture(); });
+$(’#detailOverlay’).addEventListener(‘click’, e=>{ if(e.target.id===‘detailOverlay’) closeDetail(); });
+
+$$(’.capture-tab’).forEach(el=>el.addEventListener(‘click’, ()=>setCaptureType(el.dataset.type)));
+
+$$(’#filterTabs .tab’).forEach(el=>el.addEventListener(‘click’, ()=>{
+$$(’#filterTabs .tab’).forEach(t=>t.classList.remove(‘active’));
+el.classList.add(‘active’);
+currentFilter=el.dataset.filter;
+renderBoard();
+}));
+
+$$(’.nav-item’).forEach(el=>el.addEventListener(‘click’, ()=>switchView(el.dataset.view)));
+
+$(’#btnAutoTag’).addEventListener(‘click’, autoTagAll);
+$(’#btnReport’).addEventListener(‘click’, generateReport);
+}
+init();
+</script>
+
+</body>
+</html>
