@@ -1283,10 +1283,12 @@ function extractVideoFrames(dataUrl, intervalSec=5, maxFrames=20){
     document.body.appendChild(video);
 
     let settled = false;
+    let objectUrl = null;
     const finish = (frames)=>{
       if(settled) return;
       settled = true;
       video.remove(); // 用完就从页面里挪走，不留着占地方
+      if(objectUrl) URL.revokeObjectURL(objectUrl);
       resolve(frames);
     };
     video.addEventListener('loadedmetadata', async ()=>{
@@ -1320,7 +1322,15 @@ function extractVideoFrames(dataUrl, intervalSec=5, maxFrames=20){
     });
     video.addEventListener('error', ()=>finish([]));
     setTimeout(()=>finish([]), 15000); // 整体保险：截图太久就放弃，不要卡住分享流程
-    video.src = dataUrl;
+    // 用blob URL而不是超长的data URI做视频来源——data URI给<video>用，文件稍大在iOS Safari上经常连元数据都读不出来
+    // （跟之前"视频放不出来"是同一个坑，这里刚才漏改了）
+    try{
+      objectUrl = URL.createObjectURL(dataURLtoBlob(dataUrl));
+      video.src = objectUrl;
+    }catch(err){
+      console.error('转换视频来源失败', err);
+      finish([]);
+    }
   });
 }
 
