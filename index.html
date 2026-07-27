@@ -1274,12 +1274,28 @@ function extractVideoFrames(dataUrl, intervalSec=5, maxFrames=20){
     video.muted = true;
     video.playsInline = true;
     video.preload = 'auto';
+    // 一定要真的放进页面里（哪怎么藏起来都行），完全脱离DOM的<video>在很多手机浏览器上根本不会解码画面，截图会一直失败
+    video.style.position = 'fixed';
+    video.style.left = '-9999px';
+    video.style.top = '0';
+    video.style.width = '1px';
+    video.style.height = '1px';
+    document.body.appendChild(video);
+
     let settled = false;
-    const finish = (frames)=>{ if(settled) return; settled=true; resolve(frames); };
+    const finish = (frames)=>{
+      if(settled) return;
+      settled = true;
+      video.remove(); // 用完就从页面里挪走，不留着占地方
+      resolve(frames);
+    };
     video.addEventListener('loadedmetadata', async ()=>{
       try{
         const duration = video.duration || 0;
         if(!duration || !isFinite(duration)){ finish([]); return; }
+        // 先短暂播放一下再暂停，激活解码流程——不这么做的话，很多手机浏览器seek了也抓不到真实画面
+        try{ await video.play(); video.pause(); }catch(e){ /* 播放不了也继续试着截图 */ }
+
         const maxSide = 480; // 截图给AI看内容用，不用太大
         const scale = Math.min(1, maxSide / Math.max(video.videoWidth||maxSide, video.videoHeight||maxSide));
         const canvas = document.createElement('canvas');
@@ -1453,7 +1469,7 @@ function setCaptureType(t){
         <span class="ic">${iconHtml(t)}</span>
         <div>点击选择视频文件</div>
       </div>
-      <p style="font-size:11.5px; color:var(--ink-soft); margin:6px 2px 0; line-height:1.5;">建议单个视频不超过80MB，太大手机内存可能吃不消，存不进去；如果视频比较长，可以先用"照片"App剪短或压缩一下再选</p>
+      <p style="font-size:11.5px; color:var(--ink-soft); margin:6px 2px 0; line-height:1.5;">建议单个视频不超过100MB，太大手机内存可能吃不消，存不进去；如果视频比较长，可以先用"照片"App剪短或压缩一下再选</p>
       <input type="file" id="fileInput" accept="video/*" multiple>
       <div id="previewArea"></div>
       <textarea id="textInput" placeholder="补充一点文字说明（可选）" style="margin-top:10px; min-height:60px;"></textarea>
@@ -1673,7 +1689,7 @@ async function handleFileSelect(e){
     // 视频文件：直接保存原文件（浏览器端压缩在iOS上无法实现，不做假的压缩尝试）
     if(captureType==='video' && file.type.startsWith('video/')){
       const sizeMB = file.size / (1024*1024);
-      if(sizeMB > 80){
+      if(sizeMB > 100){
         toast(`"${file.name}" 约${Math.round(sizeMB)}MB，文件较大，手机内存不够时可能存不进去`);
       }
       setCaptureStatus(`<span class="ic">⏳</span><div>正在保存${progressLabel}…</div>`);
