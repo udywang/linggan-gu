@@ -619,7 +619,7 @@
 <div class="copy-result-overlay" id="copyResultOverlay">
   <div class="copy-result-card">
     <h3>灵感已经整理好</h3>
-    <p style="font-size:12px; color:var(--ink-soft); margin:0 0 8px;">编辑提示词后点"一起分享给 AI"就能发出去；AI 看不懂视频（会自动换个方式处理）、也听不懂音频（这个目前没法处理，重要内容建议自己写几句说明）</p>
+    <p style="font-size:12px; color:var(--ink-soft); margin:0 0 8px;">编辑提示词后点"一起分享给 AI"就能发出去；视频会自动换成截图，音频暂时没法处理，重要内容建议自己写几句说明；另外能分享到哪个 App，取决于对方是否支持接收分享，不是所有 AI App 都支持</p>
     <textarea id="copyResultText" class="copy-result-textarea"></textarea>
     <button class="save-btn" id="crShareBtn" style="margin-top:10px;">📤 一起分享给 AI</button>
     <div class="cr-actions">
@@ -785,9 +785,10 @@ function renderBoard(){
       }
       const snippetText = item.text || '';
       const tagsHtml = (item.tags&&item.tags.length) ? `<div class="tags">${item.tags.slice(0,3).map(t=>`<span class="tag-chip">${escapeHtml(t)}</span>`).join('')}</div>` : '';
+      const selectDotHtml = item.type==='audio' ? '' : `<div class="select-dot">✓</div>`;
       card.innerHTML = `
         <div class="pin"></div>
-        <div class="select-dot">✓</div>
+        ${selectDotHtml}
         ${mixedBadge}
         ${thumbHtml}
         <div class="snippet">${escapeHtml(snippetText).slice(0,80)}</div>
@@ -804,7 +805,10 @@ function renderBoard(){
         closeSwipe(wrap, card);
         return;
       }
-      if(selectMode){ toggleSelect(item.id); }
+      if(selectMode){
+        if(item.type==='audio'){ toast('无法分享录音，因为AI目前无法接收'); return; }
+        toggleSelect(item.id);
+      }
       else { openDetail(item.id); }
     });
 
@@ -913,18 +917,25 @@ function toggleSelectMode(forceOff){
 function currentFilteredItems(){
   return currentFilter==='all' ? items : items.filter(i=>i.type===currentFilter);
 }
+// 录音不能分享给AI，所以"全选"这类批量操作要把录音排除在外
+function selectableItems(list){
+  return list.filter(i=>i.type!=='audio');
+}
 function updateSelectAllLabel(){
-  const filtered = currentFilteredItems();
-  const allSelected = filtered.length>0 && filtered.every(i=>selectedIds.has(i.id));
+  const selectable = selectableItems(currentFilteredItems());
+  const allSelected = selectable.length>0 && selectable.every(i=>selectedIds.has(i.id));
   $('#selectAllBtn').textContent = allSelected ? '取消全选' : '全选';
 }
 function toggleSelectAll(){
   const filtered = currentFilteredItems();
-  const allSelected = filtered.length>0 && filtered.every(i=>selectedIds.has(i.id));
+  const selectable = selectableItems(filtered);
+  const hasAudio = filtered.some(i=>i.type==='audio');
+  const allSelected = selectable.length>0 && selectable.every(i=>selectedIds.has(i.id));
   if(allSelected){
-    filtered.forEach(i=>selectedIds.delete(i.id));
+    selectable.forEach(i=>selectedIds.delete(i.id));
   } else {
-    filtered.forEach(i=>selectedIds.add(i.id));
+    selectable.forEach(i=>selectedIds.add(i.id));
+    if(hasAudio) toast('无法分享录音，因为AI目前无法接收');
   }
   updateSelectAllLabel();
   renderBoard();
@@ -1035,8 +1046,11 @@ function flattenMediaItems(selectedItems){
   for(const it of selectedItems){
     if(it.type==='mixed' && Array.isArray(it.mediaList)){
       it.mediaList.forEach((m,idx)=>{
+        if(m.type==='audio') return; // 录音不能分享给AI，合并素材里的录音子项也要排除
         if(m.dataUrl) flat.push({id:`${it.id}-${idx}`, type:m.type||'image', mediaData:m.dataUrl, mediaMime:m.mime, mediaName:m.name});
       });
+    } else if(it.type==='audio'){
+      // 录音不能分享给AI，直接跳过
     } else if(it.mediaData){
       flat.push({id:it.id, type:it.type, mediaData:it.mediaData, mediaMime:it.mediaMime, mediaName:it.mediaName});
     }
@@ -1491,6 +1505,7 @@ function setCaptureType(t){
         <button class="mic-record-btn" id="micRecordBtn"><span class="ic">🎙</span>录音</button>
         <span class="mic-timer" id="micTimer"></span>
       </div>
+      <p style="font-size:11px; color:var(--ink-soft); margin:10px 0 0; text-align:center;">录音可以正常存，只是暂时没法分享给 AI</p>
       <div id="captureStatus" class="capture-status"></div>
     `;
     $('#micRecordBtn').addEventListener('click', toggleMicRecording);
