@@ -746,7 +746,7 @@ function renderBoard(){
         if(first && first.type==='image'){
           thumbHtml=`<div class="thumb"><img src="${first.dataUrl}"></div>`;
         } else if(first && first.type==='video'){
-          thumbHtml=`<div class="thumb"><video src="${first.dataUrl}" muted></video><div class="play-badge"><span>▶</span></div></div>`;
+          thumbHtml=`<div class="thumb"><video src="${toPlayableSrc(first.dataUrl)}" muted></video><div class="play-badge"><span>▶</span></div></div>`;
         } else if(first && first.type==='audio'){
           thumbHtml=`<div class="thumb">🎙</div>`;
         } else {
@@ -756,7 +756,7 @@ function renderBoard(){
       } else if(item.type==='image' && item.mediaData){
         thumbHtml=`<div class="thumb"><img src="${item.mediaData}"></div>`;
       } else if(item.type==='video' && item.mediaData){
-        thumbHtml=`<div class="thumb"><video src="${item.mediaData}" muted></video><div class="play-badge"><span>▶</span></div></div>`;
+        thumbHtml=`<div class="thumb"><video src="${toPlayableSrc(item.mediaData)}" muted></video><div class="play-badge"><span>▶</span></div></div>`;
       } else if(item.type==='audio'){
         thumbHtml=`<div class="thumb">🎙</div>`;
       } else {
@@ -1052,6 +1052,17 @@ function dataURLtoBlob(dataurl){
   const u8arr = new Uint8Array(n);
   while(n--){ u8arr[n] = bstr.charCodeAt(n); }
   return new Blob([u8arr], {type:mime});
+}
+// 视频/音频用超长的data URI直接播放，在iOS Safari上文件稍大就经常放不出来（WebKit的已知限制），
+// 转成blob URL播放要稳定得多；图片不受影响，不用转
+function toPlayableSrc(dataUrl){
+  if(!dataUrl) return dataUrl;
+  try{
+    return URL.createObjectURL(dataURLtoBlob(dataUrl));
+  }catch(err){
+    console.error('转blob URL失败，退回原始data URI', err);
+    return dataUrl;
+  }
 }
 function guessExt(mime, fallback){
   if(!mime) return fallback;
@@ -1429,12 +1440,13 @@ function startMicRecognition(){
       }
       if(finalText) micTranscript += finalText;
     };
-    micRecognition.onerror = (ev)=>{ console.error('语音识别出错（不影响录音）', ev.error); };
+    // 出错或结束就彻底放弃这次识别，不重试——避免"识别失败→重启→再失败"的死循环把页面卡死
+    micRecognition.onerror = (ev)=>{
+      console.error('语音识别出错（不影响录音）', ev.error);
+      micRecognition = null;
+    };
     micRecognition.onend = ()=>{
-      // 有些设备上continuous模式会中途自己断掉，录音还在继续的话就尝试重新拉起识别
-      if(micRecorder && micRecorder.state==='recording' && micRecognition){
-        try{ micRecognition.start(); }catch(e){}
-      }
+      micRecognition = null;
     };
     micRecognition.start();
   }catch(err){
@@ -1444,7 +1456,7 @@ function startMicRecognition(){
 }
 function stopMicRecognition(){
   if(micRecognition){
-    try{ micRecognition.onend = null; micRecognition.stop(); }catch(e){}
+    try{ micRecognition.onend = null; micRecognition.onerror = null; micRecognition.stop(); }catch(e){}
     micRecognition = null;
   }
 }
@@ -1688,16 +1700,16 @@ function renderDetailView(item, editing){
     mediaHtml = item.mediaList.map(m=>{
       let inner='';
       if(m.type==='image' && m.dataUrl) inner=`<img src="${m.dataUrl}">`;
-      else if(m.type==='video' && m.dataUrl) inner=`<video src="${m.dataUrl}" controls style="width:100%"></video>`;
-      else if(m.type==='audio' && m.dataUrl) inner=`<audio src="${m.dataUrl}" controls style="width:100%"></audio>`;
+      else if(m.type==='video' && m.dataUrl) inner=`<video src="${toPlayableSrc(m.dataUrl)}" controls style="width:100%"></video>`;
+      else if(m.type==='audio' && m.dataUrl) inner=`<audio src="${toPlayableSrc(m.dataUrl)}" controls style="width:100%"></audio>`;
       const caption = m.text ? `<div class="detail-sub-caption">${escapeHtml(m.text)}</div>` : '';
       if(!inner && !caption) return '';
       return `<div class="detail-media">${inner}${caption}</div>`;
     }).join('');
   } else {
     if(item.type==='image' && item.mediaData) mediaHtml=`<div class="detail-media"><img src="${item.mediaData}"></div>`;
-    if(item.type==='video' && item.mediaData) mediaHtml=`<div class="detail-media"><video src="${item.mediaData}" controls style="width:100%"></video></div>`;
-    if(item.type==='audio' && item.mediaData) mediaHtml=`<div class="detail-media"><audio src="${item.mediaData}" controls style="width:100%"></audio></div>`;
+    if(item.type==='video' && item.mediaData) mediaHtml=`<div class="detail-media"><video src="${toPlayableSrc(item.mediaData)}" controls style="width:100%"></video></div>`;
+    if(item.type==='audio' && item.mediaData) mediaHtml=`<div class="detail-media"><audio src="${toPlayableSrc(item.mediaData)}" controls style="width:100%"></audio></div>`;
   }
   const tagsHtml = (item.tags&&item.tags.length) ? `<div class="detail-tags">${item.tags.map(t=>`<span class="tag-chip">${escapeHtml(t)}</span>`).join('')}</div>` : '';
 
