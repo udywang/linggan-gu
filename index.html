@@ -1121,12 +1121,12 @@ function dataURLtoBlob(dataurl){
   while(n--){ u8arr[n] = bstr.charCodeAt(n); }
   return new Blob([u8arr], {type:mime});
 }
-// 批量处理很多文件时（比如"打包全部给AI"、"打包备份"），用这个快速版：
-// 靠浏览器原生fetch来解码，比手写的atob逐字节循环快得多、占用内存也少得多，
-// 不容易在一次性处理很多素材时把手机内存撑爆导致崩溃
+// 批量处理很多文件时（比如"打包全部给AI"、"打包备份"）也用这个：
+// 之前改成用fetch()解码想着更快，但fetch()处理大的base64数据在Safari上有已知的失败问题
+// （文件越大越容易直接失败，这就是之前"视频大一点备份就失败"的真正原因），改回手写解码更可靠；
+// 真正防止卡死靠的是调用这个函数时中间的"让步"（每处理几个文件歇一下），不是靠这个转换方法本身
 async function dataURLtoBlobFast(dataurl){
-  const res = await fetch(dataurl);
-  return await res.blob();
+  return dataURLtoBlob(dataurl);
 }
 // 视频/音频用超长的data URI直接播放，在iOS Safari上文件稍大就经常放不出来（WebKit的已知限制），
 // 转成blob URL播放要稳定得多；图片不受影响，不用转
