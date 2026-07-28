@@ -1165,7 +1165,8 @@ async function exportBackup(){
       if(it.mediaData){
         const ext = guessExt(it.mediaMime, 'bin');
         entry.mediaFile = `media/${it.id}.${ext}`;
-        zip.file(entry.mediaFile, await dataURLtoBlobFast(it.mediaData));
+        // 媒体文件本身已经是压缩格式了，不再让zip重复压缩一遍——视频越大这一步越吃资源，是之前打包大视频失败的根源
+        zip.file(entry.mediaFile, await dataURLtoBlobFast(it.mediaData), {compression:'STORE'});
       }
       if(it.type==='mixed' && Array.isArray(it.mediaList)){
         entry.mediaList = [];
@@ -1176,7 +1177,7 @@ async function exportBackup(){
           if(m.dataUrl){
             const ext = guessExt(m.mime, 'bin');
             sub.file = `media/${it.id}_${idx}.${ext}`;
-            zip.file(sub.file, await dataURLtoBlobFast(m.dataUrl));
+            zip.file(sub.file, await dataURLtoBlobFast(m.dataUrl), {compression:'STORE'});
           }
           entry.mediaList.push(sub);
         }
